@@ -14,22 +14,47 @@
 
 //-- Top entity
 module txchar (
-          input wire clk,   //-- System clock
-          input wire rstn,  //-- Reset (active low)
-          output wire tx    //-- Serial data output
+          output wire tx,    //-- Serial data output
+          output wire debugclk
 );
+
+//clock signal from internal oscillator
+wire intclk;
+wire clk1;
+wire clk;
+
+SB_HFOSC OSCInst0 (
+	.CLKHFEN(1'b1),
+	.CLKHFPU(1'b1),
+	.CLKHF(intclk)
+);
+
+//clock dividers to convert clock signal
+//from 50MHz to 12.5 MHz
+initial begin
+	clk1 <= 0;
+	clk <= 0;
+end
+
+always @(posedge intclk) begin
+	clk1 <= ~clk1;
+end
+
+always @(posedge clk1) begin
+	clk <= ~clk;
+end
 
 //-- Serial Unit instantation
 uart_tx #(
-    .BAUDRATE(`B115200)  //-- Set the baudrate
-
+    .BAUDRATE(`B9600)//115200)  //-- Set the baudrate
   ) TX0 (
     .clk(clk),
-    .rstn(rstn),
-    .data("A"),    //-- Fixed character to transmit (always the same)
+    .rstn(1'b1),
+    .data("!"),    //-- Fixed character to transmit (always the same)
     .start(1'b1),  //-- Start signal always set to 1
     .tx(tx)
 );                 //-- Port ready not used
 
+assign debugclk = clk; //clock for debugging
 
 endmodule

@@ -14,10 +14,10 @@
 
 //-- Top entity
 module txstr #(
-          parameter BAUDRATE = `B9600//`B115200
+	parameter BAUDRATE = `B9600//`B115200
 )(
-          output wire tx,    //-- Serial data output
-          output wire debugclk
+	output wire tx,    //-- Serial data output
+	output wire debugclk
 );
 
 wire intclk1;
@@ -31,7 +31,7 @@ SB_HFOSC OSCInst0 (
 	.CLKHF(intclk1)
 );
 
-//devide by 2 clock dividers to divide 
+//2 devide-by-2 clock dividers to divide 
 //frequency from 50MHz to 12.5MHz
 always @(posedge intclk1) begin
 	intclk2 <= ~intclk2;
@@ -44,15 +44,14 @@ end
 
 //-- Serial Unit instantation
 uart_tx #(
-    .BAUDRATE(BAUDRATE)  //-- Set the baudrate
-
-  ) TX0 (
-    .clk(clk),
-    .rstn(1'b1),
-    .data(data),
-    .start(start),
-    .tx(tx),
-    .ready(ready)
+	.BAUDRATE(BAUDRATE)  //-- Set the baudrate
+) TX0 (
+	.clk(clk),
+	.rstn(1'b1),
+	.data(data),
+	.start(start),
+	.tx(tx),
+	.ready(ready)
 );
 
 //-- Connecting wires
@@ -62,8 +61,9 @@ reg [7:0] data;
 
 //-- Characters counter
 //-- It only counts when the cena control signal is enabled
-wire [2:0] char_count;
+integer char_count;
 
+reg [7:0] dataregs[0:127];
 
 //--------------------- CONTROLLER
 
@@ -76,35 +76,21 @@ localparam STOP = 3;
 reg [1:0] state;
 reg [1:0] next_state;
 
+//set initial values
 initial begin
+	//initial values
 	state <= 0;
 	next_state <= 0;
 	char_count <= 0;
 	start <= 0;
-end
-
-//-- Transition between states
-always @(negedge clk) begin
-  state <= next_state;
+	
+	{dataregs[0], dataregs[1], dataregs[2], dataregs[3], dataregs[4], dataregs[5], dataregs[6], dataregs[7], dataregs[8], dataregs[9], dataregs[10], dataregs[11], dataregs[12], dataregs[13], dataregs[14], dataregs[15]} <= {"R", "e", "g", "i", "s", "t", "e", "r", " ", "T", "e", "s", "t", "\0", "\r", "\n"};
 end
 
 //-- Control signal generation and next states
 always @(posedge clk) begin
-  //next_state = state;
-  //start = 0;
-  
-  //-- Multiplexer with the 8-character string to transmit
-  case (char_count)
-    8'd0: data <= "H";
-    8'd1: data <= "e";
-    8'd2: data <= "l";
-    8'd3: data <= "l";
-    8'd4: data <= "o";
-    8'd5: data <= "!";
-    8'd6: data <= "\r";
-    8'd7: data <= "\n";
-    default: data <= ".";
-  endcase
+
+	data <= dataregs[char_count];
 
   case (state)
     //-- Initial state. Start the trasmission
@@ -123,11 +109,10 @@ always @(posedge clk) begin
     //-- Increment the character counter
     //-- Finish when it is the last character
     NEXTCAR: begin
-      //cena = 1;
-      if (char_count == 7) begin
+      if (char_count == 15) begin
         next_state = STOP;
         char_count = 0;
-        start = 0;//
+        start = 0;
       end
       else begin
         next_state = INI;
@@ -136,6 +121,9 @@ always @(posedge clk) begin
     end
 
   endcase
+  
+  state <= next_state;
+  
 end
 
 assign debugclk = clk;

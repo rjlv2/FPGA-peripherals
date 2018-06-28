@@ -95,6 +95,11 @@ localparam DAV = 2'd3;   //-- Data is available
 reg [1:0] state;
 reg [1:0] next_state;
 
+//-- Initialize state
+initial begin
+	state <= IDLE; //IDLE
+end
+
 //-- Transition between states
 always @(posedge clk)
   if (!rstn)
